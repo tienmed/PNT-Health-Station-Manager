@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  /* Slate-50 */
+  --foreground: #0f172a;
+  /* Slate-900 */
+  --primary: #0ea5e9;
+  /* Sky-500 */
+  --secondary: #64748b;
+  /* Slate-500 */
+  --accent: #e2e8f0;
+  /* Slate-200 */
+}
+
+@media (prefers-color-scheme: dark) {
+
+  /* Enforcing light theme as requested, overriding system pref */
+  :root {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
