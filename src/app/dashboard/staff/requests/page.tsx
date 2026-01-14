@@ -43,7 +43,8 @@ export default function StaffRequestsPage() {
     }
 
     const handleStatusUpdate = async (req: Request, status: "APPROVED" | "REJECTED") => {
-        if (!confirm(`Are you sure you want to ${status} this request?`)) return;
+        const action = status === "APPROVED" ? "DUYỆT" : "TỪ CHỐI";
+        if (!confirm(`Bạn có chắc chắn muốn ${action} yêu cầu này không?`)) return;
         setProcessing(req.requestId);
 
         try {
@@ -59,10 +60,10 @@ export default function StaffRequestsPage() {
             });
 
             if (res.ok) {
-                alert(`Request ${status}`);
+                alert(`Yêu cầu đã được: ${action}`);
                 fetchRequests(); // Reload list
             } else {
-                alert("Failed to update request");
+                alert("Cập nhật yêu cầu thất bại");
             }
         } catch (e) {
             console.error(e);
@@ -76,15 +77,15 @@ export default function StaffRequestsPage() {
             <Navbar />
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900">Pending Requests Queue</h1>
-                    <Button variant="outline" onClick={() => router.back()}>Back to Dashboard</Button>
+                    <h1 className="text-2xl font-bold text-slate-900">Hàng đợi yêu cầu chờ xử lý</h1>
+                    <Button variant="outline" onClick={() => router.back()}>Quay lại Bảng tin</Button>
                 </div>
 
                 {loading ? (
-                    <div>Loading...</div>
+                    <div>Đang tải...</div>
                 ) : requests.length === 0 ? (
                     <Card className="text-center py-12">
-                        <p className="text-slate-500">No pending requests.</p>
+                        <p className="text-slate-500">Không có yêu cầu nào đang chờ.</p>
                     </Card>
                 ) : (
                     <div className="grid gap-4">
@@ -96,9 +97,9 @@ export default function StaffRequestsPage() {
                                         <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded">x{req.quantity}</span>
                                     </div>
                                     <p className="text-sm text-slate-600">
-                                        Requested by: <span className="font-semibold">{req.email}</span> on {req.date}
+                                        Yêu cầu bởi: <span className="font-semibold">{req.email}</span> lúc {req.date}
                                     </p>
-                                    {req.note && <p className="text-sm text-slate-500 italic mt-1">Note: "{req.note}"</p>}
+                                    {req.note && <p className="text-sm text-slate-500 italic mt-1">Ghi chú: "{req.note}"</p>}
                                 </div>
 
                                 <div className="flex items-center gap-3">
@@ -108,14 +109,14 @@ export default function StaffRequestsPage() {
                                         onClick={() => handleStatusUpdate(req, "REJECTED")}
                                         disabled={!!processing}
                                     >
-                                        Reject
+                                        Từ chối
                                     </Button>
                                     <Button
                                         className="bg-green-600 hover:bg-green-700 text-white"
                                         onClick={() => handleStatusUpdate(req, "APPROVED")}
                                         disabled={!!processing}
                                     >
-                                        {processing === req.requestId ? "Processing..." : "Approve & Dispense"}
+                                        {processing === req.requestId ? "Đang xử lý..." : "Duyệt & Cấp phát"}
                                     </Button>
                                 </div>
                             </Card>

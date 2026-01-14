@@ -58,10 +58,10 @@ export default function RequestPage() {
             });
 
             if (res.ok) {
-                alert("Request submitted successfully!");
+                alert("Gửi yêu cầu thành công!");
                 router.push("/dashboard/history");
             } else {
-                alert("Failed to submit request.");
+                alert("Gửi yêu cầu thất bại.");
             }
         } catch (e) {
             console.error(e);
@@ -78,25 +78,26 @@ export default function RequestPage() {
             <Navbar />
             <main className="max-w-3xl mx-auto px-4 py-8">
                 <div className="mb-6 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-slate-900">Request Medication</h1>
-                    <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
+                    <h1 className="text-2xl font-bold text-slate-900">Yêu cầu cấp phát thuốc</h1>
+                    <Button variant="outline" onClick={() => router.back()}>Hủy bỏ</Button>
                 </div>
 
                 <Card>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Select Medication
+                                Chọn loại thuốc
                             </label>
                             <select
                                 value={selectedMed}
                                 onChange={(e) => setSelectedMed(e.target.value)}
                                 className="w-full rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 p-2 border"
                                 required
+                                aria-label="Chọn loại thuốc"
                             >
                                 {medications.map((med) => (
                                     <option key={med.id} value={med.id}>
-                                        {med.name} (Stock: {med.stock} {med.unit})
+                                        {med.name} (Tồn kho: {med.stock} {med.unit})
                                     </option>
                                 ))}
                             </select>
@@ -104,7 +105,7 @@ export default function RequestPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Quantity
+                                Số lượng
                             </label>
                             <input
                                 type="number"
@@ -113,25 +114,27 @@ export default function RequestPage() {
                                 onChange={(e) => setQuantity(parseInt(e.target.value))}
                                 className="w-full rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 p-2 border"
                                 required
+                                placeholder="Nhập số lượng"
+                                aria-label="Số lượng"
                             />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Reason / Note
+                                Lý do / Ghi chú
                             </label>
                             <textarea
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
                                 className="w-full rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 p-2 border h-24"
-                                placeholder="e.g. Headache, Fever..."
+                                placeholder="Ví dụ: Đau đầu, Sốt..."
                                 required
                             />
                         </div>
 
                         <div className="flex justify-end pt-4">
                             <Button type="submit" disabled={submitting}>
-                                {submitting ? "Submitting..." : "Submit Request"}
+                                {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
                             </Button>
                         </div>
                     </form>

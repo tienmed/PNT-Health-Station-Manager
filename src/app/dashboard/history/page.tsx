@@ -35,6 +35,15 @@ export default function HistoryPage() {
         fetchRequests();
     }, []);
 
+    const getStatusText = (status: string) => {
+        switch (status.toUpperCase()) {
+            case "APPROVED": return "ĐÃ DUYỆT";
+            case "REJECTED": return "TỪ CHỐI";
+            case "PENDING": return "CHỜ XỬ LÝ";
+            default: return status;
+        }
+    };
+
     const getStatusColor = (status: string) => {
         switch (status.toUpperCase()) {
             case "APPROVED": return "bg-green-100 text-green-800";
@@ -48,19 +57,19 @@ export default function HistoryPage() {
             <Navbar />
             <main className="max-w-5xl mx-auto px-4 py-8">
                 <div className="mb-6 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-slate-900">Request History</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">Lịch sử yêu cầu</h1>
                     <Link href="/dashboard/request">
-                        <Button>New Request</Button>
+                        <Button>Tạo yêu cầu mới</Button>
                     </Link>
                 </div>
 
                 {loading ? (
-                    <div className="text-center p-8">Loading history...</div>
+                    <div className="text-center p-8">Đang tải dữ liệu...</div>
                 ) : requests.length === 0 ? (
                     <Card className="text-center py-12">
-                        <p className="text-slate-500 mb-4">No requests found.</p>
+                        <p className="text-slate-500 mb-4">Chưa có yêu cầu nào.</p>
                         <Link href="/dashboard/request">
-                            <Button variant="outline">Create your first request</Button>
+                            <Button variant="outline">Tạo yêu cầu đầu tiên</Button>
                         </Link>
                     </Card>
                 ) : (
@@ -69,10 +78,10 @@ export default function HistoryPage() {
                             <table className="min-w-full divide-y divide-slate-200">
                                 <thead className="bg-slate-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Note</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Ngày</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Mã phiếu</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Ghi chú</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-slate-200">
@@ -89,7 +98,7 @@ export default function HistoryPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(req.status)}`}>
-                                                    {req.status}
+                                                    {getStatusText(req.status)}
                                                 </span>
                                             </td>
                                         </tr>

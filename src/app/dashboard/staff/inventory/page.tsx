@@ -93,37 +93,40 @@ export default function InventoryPage() {
             <Navbar />
             <main className="max-w-5xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900">Inventory Management</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">Quản lý Kho thuốc</h1>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => router.back()}>Back</Button>
-                        <Button onClick={() => setShowAdd(!showAdd)}>+ Add Medication</Button>
+                        <Button variant="outline" onClick={() => router.back()}>Quay lại</Button>
+                        <Button onClick={() => setShowAdd(!showAdd)}>+ Thêm thuốc</Button>
                     </div>
                 </div>
 
                 {showAdd && (
                     <Card className="mb-6 border-sky-100 bg-sky-50">
-                        <h3 className="font-bold text-slate-800 mb-4">Add New Medication</h3>
+                        <h3 className="font-bold text-slate-800 mb-4">Thêm thuốc mới</h3>
                         <form onSubmit={addNewMed} className="flex gap-4 flex-wrap items-end">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Name</label>
-                                <input className="p-2 rounded border" placeholder="e.g. Paracetamol" required
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Tên thuốc</label>
+                                <input className="p-2 rounded border" placeholder="Ví dụ: Paracetamol" required
                                     value={newMed.name} onChange={e => setNewMed({ ...newMed, name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Unit</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Đơn vị</label>
                                 <select className="p-2 rounded border w-32"
+                                    title="Đơn vị thuốc"
                                     value={newMed.unit} onChange={e => setNewMed({ ...newMed, unit: e.target.value })}>
-                                    <option value="pill">Pill</option>
-                                    <option value="bottle">Bottle</option>
-                                    <option value="box">Box</option>
+                                    <option value="pill">Viên</option>
+                                    <option value="bottle">Chai</option>
+                                    <option value="box">Hộp</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Initial Stock</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Tồn kho ban đầu</label>
                                 <input className="p-2 rounded border w-24" type="number" required
+                                    placeholder="SL"
+                                    title="Tồn kho ban đầu"
                                     value={newMed.stock} onChange={e => setNewMed({ ...newMed, stock: parseInt(e.target.value) })} />
                             </div>
-                            <Button type="submit">Save</Button>
+                            <Button type="submit">Lưu</Button>
                         </form>
                     </Card>
                 )}
@@ -132,10 +135,10 @@ export default function InventoryPage() {
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Medication</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Unit</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Stock Level</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Tên thuốc</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Đơn vị</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Tồn kho</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Hành động</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -149,6 +152,7 @@ export default function InventoryPage() {
                                                 type="number"
                                                 className="w-20 p-1 border rounded"
                                                 value={editStock}
+                                                title="Cập nhật tồn kho"
                                                 onChange={(e) => setEditStock(parseInt(e.target.value))}
                                             />
                                         ) : (
@@ -158,11 +162,11 @@ export default function InventoryPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         {editingId === med.id ? (
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={() => saveStock(med.id)} className="text-green-600 hover:text-green-900">Save</button>
-                                                <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-600">Cancel</button>
+                                                <button onClick={() => saveStock(med.id)} className="text-green-600 hover:text-green-900">Lưu</button>
+                                                <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-600">Hủy</button>
                                             </div>
                                         ) : (
-                                            <button onClick={() => startEdit(med)} className="text-sky-600 hover:text-sky-900">Update Stock</button>
+                                            <button onClick={() => startEdit(med)} className="text-sky-600 hover:text-sky-900">Cập nhật kho</button>
                                         )}
                                     </td>
                                 </tr>

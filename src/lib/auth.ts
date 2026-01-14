@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
         },
     },
     pages: {
-        signIn: "/auth/signin", // Custom sign-in page if we want, or default
+        // signIn: "/auth/signin", // Custom sign-in page if we want, or default
         error: "/auth/error", // Error page
     },
     secret: process.env.NEXTAUTH_SECRET,

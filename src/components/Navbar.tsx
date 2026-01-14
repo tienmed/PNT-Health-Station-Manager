@@ -14,21 +14,36 @@ export function Navbar() {
                     HealthStation<span className="text-sky-500">Manager</span>
                 </Link>
 
-                <div className="flex items-center gap-4">
-                    {session ? (
-                        <>
-                            <span className="text-sm text-slate-600 hidden sm:block">
-                                {session.user?.name}
-                            </span>
-                            <Button variant="outline" onClick={() => signOut()} className="text-sm">
-                                Sign Out
-                            </Button>
-                        </>
-                    ) : (
-                        <Button variant="primary" onClick={() => signIn("google")} className="text-sm">
-                            Sign In
-                        </Button>
+                <div className="flex items-center gap-6">
+                    {session && (
+                        <div className="hidden md:flex gap-6 mr-4">
+                            <Link href="/dashboard" className="text-sm font-medium text-slate-600 hover:text-sky-600">
+                                Bảng tin
+                            </Link>
+                            {((session.user as any).role === "STAFF" || (session.user as any).role === "ADMIN") && (
+                                <Link href="/dashboard/staff/reports" className="text-sm font-medium text-slate-600 hover:text-sky-600">
+                                    Báo cáo
+                                </Link>
+                            )}
+                        </div>
                     )}
+
+                    <div className="flex items-center gap-4">
+                        {session ? (
+                            <>
+                                <span className="text-sm text-slate-600 hidden sm:block">
+                                    {session.user?.name}
+                                </span>
+                                <Button variant="outline" onClick={() => signOut()} className="text-sm">
+                                    Đăng xuất
+                                </Button>
+                            </>
+                        ) : (
+                            <Button variant="primary" onClick={() => signIn("google")} className="text-sm">
+                                Đăng nhập
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </nav>
