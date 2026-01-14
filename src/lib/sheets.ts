@@ -10,10 +10,21 @@ export async function getSheetsClient() {
         throw new Error("Missing Google Service Account credentials");
     }
 
+    // Clean up the private key
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+
+    // Remove wrapping quotes if they exist (common Vercel env var mistake)
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.slice(1, -1);
+    }
+
+    // Ensure newlines are correctly interpreted
+    privateKey = privateKey.replace(/\\n/g, "\n");
+
     const auth = new google.auth.GoogleAuth({
         credentials: {
             client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+            private_key: privateKey,
         },
         scopes: SCOPES,
     });
