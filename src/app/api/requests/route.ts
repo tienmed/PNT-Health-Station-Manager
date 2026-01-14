@@ -43,9 +43,12 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ success: true, requestId });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating request:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({
+            error: error.message || "Internal Server Error",
+            details: error.toString()
+        }, { status: 500 });
     }
 }
 
