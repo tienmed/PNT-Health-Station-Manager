@@ -14,15 +14,16 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { medicationId, quantity, note } = body;
 
-        if (!medicationId || !quantity) {
-            return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        // Note is the primary field now, but we don't strictly enforce it to be non-empty if they just want to 'ping'
+        // However, user said "Nêu lý do" (State reason), so it's good practice.
+        if (!note && (!medicationId || !quantity)) {
+            return NextResponse.json({ error: "Vui lòng nhập lý do hoặc chọn thuốc" }, { status: 400 });
         }
 
         const requestId = `REQ-${Date.now()}`;
         const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
         // 1. Add to Requests Sheet
-        // Columns: RequestID, UserEmail, Date, Type, Status, Note
         await appendRow("Requests!A:F", [
             requestId,
             session.user.email,
@@ -32,13 +33,14 @@ export async function POST(request: Request) {
             note || "",
         ]);
 
-        // 2. Add to RequestItems Sheet
-        // Columns: RequestID, MedicationID, Quantity
-        await appendRow("RequestItems!A:C", [
-            requestId,
-            medicationId,
-            quantity
-        ]);
+        // 2. Add to RequestItems Sheet (Optional at creation)
+        if (medicationId && quantity) {
+            await appendRow("RequestItems!A:C", [
+                requestId,
+                medicationId,
+                quantity
+            ]);
+        }
 
         return NextResponse.json({ success: true, requestId });
     } catch (error) {
@@ -78,10 +80,21 @@ export async function GET() {
         });
 
         // 3. Process Requests
+        // Group items first
+        const itemsByRequest = new Map();
+        itemRows.forEach(row => {
+            const reqId = row[0];
+            if (!itemsByRequest.has(reqId)) itemsByRequest.set(reqId, []);
+            itemsByRequest.get(reqId).push({
+                medicationId: row[1],
+                quantity: parseInt(row[2] || "0"),
+                medicationName: medMap.get(row[1]) || "Unknown"
+            });
+        });
+
         const allRequests = requestRows.map((row) => {
             const requestId = row[0];
-            const item = itemMap.get(requestId) || {};
-            const medName = medMap.get(item.medId) || "Unknown";
+            const items = itemsByRequest.get(requestId) || [];
 
             return {
                 requestId,
@@ -90,9 +103,7 @@ export async function GET() {
                 type: row[3],
                 status: row[4],
                 note: row[5],
-                medicationId: item.medId,
-                medicationName: medName,
-                quantity: parseInt(item.qty || "0"),
+                items: items, // Array of { medId, qty, name }
             };
         });
 
@@ -120,7 +131,7 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        const { requestId, status, medicationId, quantity } = body;
+        const { requestId, status, items } = body; // items: { medicationId, quantity }[]
 
         if (!requestId || !status) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -134,20 +145,37 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: "Request not found" }, { status: 404 });
         }
 
-        // 2. Update Status (Column E -> Index 4 -> A,B,C,D,E)
+        // 2. Update Status (Column E -> Index 4)
         // Row is reqRowIndex + 1
         await updateRow(`Requests!E${reqRowIndex + 1}`, [status]);
 
-        // 3. If Approved, Deduct Stock
-        if (status === "APPROVED" && medicationId && quantity) {
-            const medDataRows = await readSheet("Medications!A:E");
-            const medRowIndex = medDataRows.findIndex((row) => row[0] === medicationId);
+        // 3. If Approved and items provided, Deduct Stock & Record Items
+        if (status === "APPROVED" && Array.isArray(items) && items.length > 0) {
+            const medDataRows = await readSheet("Medications!A:E"); // ID, Name, Unit, Stock, Threshold
 
-            if (medRowIndex !== -1) {
-                const currentStock = parseInt(medDataRows[medRowIndex][3] || "0");
-                const newStock = Math.max(0, currentStock - quantity);
+            for (const item of items) {
+                const { medicationId, quantity } = item;
+                if (!medicationId || !quantity) continue;
 
-                await updateRow(`Medications!D${medRowIndex + 1}`, [newStock.toString()]);
+                // Record Item
+                await appendRow("RequestItems!A:C", [
+                    requestId,
+                    medicationId,
+                    quantity
+                ]);
+
+                // Update Stock
+                const medRowIndex = medDataRows.findIndex((row) => row[0] === medicationId);
+                if (medRowIndex !== -1) {
+                    const currentStock = parseInt(medDataRows[medRowIndex][3] || "0");
+                    const newStock = Math.max(0, currentStock - parseInt(quantity));
+
+                    // Update the specific cell for stock
+                    await updateRow(`Medications!D${medRowIndex + 1}`, [newStock.toString()]);
+
+                    // Update our local cache of the row for subsequent items if same med (edge case)
+                    medDataRows[medRowIndex][3] = newStock.toString();
+                }
             }
         }
 
