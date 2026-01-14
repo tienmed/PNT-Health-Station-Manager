@@ -13,6 +13,25 @@ export async function getSheetsClient() {
     // Clean up the private key
     let privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
+    // Log key diagnostics (redacted) to help debugging
+    if (privateKey) {
+        console.log(`[DEBUG] Key length: ${privateKey.length}`);
+        console.log(`[DEBUG] Key starts with: ${privateKey.substring(0, 20)}...`);
+    }
+
+    // Check if the user pasted the full JSON file content
+    if (privateKey.trim().startsWith("{")) {
+        try {
+            const jsonKey = JSON.parse(privateKey);
+            if (jsonKey.private_key) {
+                console.log("[DEBUG] Detected JSON format, extracting private_key field.");
+                privateKey = jsonKey.private_key;
+            }
+        } catch (e) {
+            console.error("[DEBUG] Failed to parse GOOGLE_PRIVATE_KEY as JSON", e);
+        }
+    }
+
     // Remove wrapping quotes if they exist (common Vercel env var mistake)
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
         privateKey = privateKey.slice(1, -1);
