@@ -27,7 +27,7 @@ export default function HistoryPage() {
     useEffect(() => {
         async function fetchRequests() {
             try {
-                const res = await fetch("/api/requests");
+                const res = await fetch("/api/requests", { cache: "no-store" });
                 if (res.ok) {
                     setRequests(await res.json());
                 }
@@ -123,7 +123,7 @@ export default function HistoryPage() {
 
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className={`font-bold ${req.status === "APPROVED" ? "text-green-800" :
-                                                        req.status === "REJECTED" ? "text-red-800" : "text-gray-700"
+                                                    req.status === "REJECTED" ? "text-red-800" : "text-gray-700"
                                                     }`}>
                                                     {req.status === "APPROVED" ? "KẾT QUẢ: ĐÃ CẤP THUỐC" :
                                                         req.status === "REJECTED" ? "KẾT QUẢ: TỪ CHỐI" : "KẾT QUẢ: HỦY YÊU CẦU"}

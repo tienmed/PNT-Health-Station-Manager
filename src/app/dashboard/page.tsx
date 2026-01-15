@@ -89,6 +89,16 @@ export default function DashboardPage() {
                                     <Button variant="secondary" className="w-full justify-center bg-purple-600 hover:bg-purple-700">Xem Báo cáo</Button>
                                 </Link>
                             </Card>
+
+                            <Card className="hover:shadow-md transition-shadow cursor-pointer border-t-4 border-t-purple-500">
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">Nhật ký Hoạt động</h3>
+                                <p className="text-slate-600 mb-6 min-h-[48px]">
+                                    Xem lịch sử thay đổi kho và cấp phát thuốc.
+                                </p>
+                                <Link href="/dashboard/staff/logs">
+                                    <Button variant="secondary" className="w-full justify-center bg-purple-600 hover:bg-purple-700">Xem Nhật ký</Button>
+                                </Link>
+                            </Card>
                         </>
                     )}
                 </div>

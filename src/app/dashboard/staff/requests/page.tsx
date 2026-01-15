@@ -44,6 +44,7 @@ export default function StaffRequestsPage() {
     const [selectedReq, setSelectedReq] = useState<Request | null>(null);
     const [dispensingItems, setDispensingItems] = useState<DispenseItem[]>([{ medicationId: "", quantity: 1 }]);
     const [staffNote, setStaffNote] = useState("");
+    const [distributionArea, setDistributionArea] = useState<"TAN_NHUT" | "HOA_HUNG" | "">("");
 
     const isAdmin = (session?.user as any)?.role === "ADMIN";
 
@@ -53,7 +54,7 @@ export default function StaffRequestsPage() {
 
     async function fetchRequests() {
         try {
-            const res = await fetch("/api/requests");
+            const res = await fetch("/api/requests", { cache: "no-store" });
             if (res.ok) {
                 const data = await res.json();
                 // API already handles expiration logic and basic staff filtering (hiding expired)
@@ -67,7 +68,7 @@ export default function StaffRequestsPage() {
 
     async function fetchMedications() {
         try {
-            const res = await fetch("/api/medications");
+            const res = await fetch("/api/medications", { cache: "no-store" });
             if (res.ok) {
                 const data = await res.json();
                 setMedications(data);
@@ -83,6 +84,7 @@ export default function StaffRequestsPage() {
         // For simplicity, we restart dispense flow, but maybe should show existing note?
         // Let's pre-fill StaffNote if exists
         setStaffNote(req.staffNote || "");
+        setDistributionArea(""); // Reset area
 
         // Reset meds
         setDispensingItems([{ medicationId: medications[0]?.id || "", quantity: 1 }]);
@@ -103,6 +105,11 @@ export default function StaffRequestsPage() {
             return;
         }
 
+        if (status === "APPROVED" && !distributionArea) {
+            alert("Vui lòng chọn Khu vực xuất thuốc.");
+            return;
+        }
+
         const confirmMsg = status === "APPROVED"
             ? "Xác nhận DUYỆT và CẤP THUỐC cho yêu cầu này?"
             : "Bạn không trọn thuốc nào. Xác nhận TỪ CHỐI yêu cầu này?";
@@ -110,12 +117,12 @@ export default function StaffRequestsPage() {
         if (!confirm(confirmMsg)) return;
 
         setProcessing(selectedReq.requestId);
-        await updateRequestStatus(selectedReq.requestId, status, validItems, staffNote);
+        await updateRequestStatus(selectedReq.requestId, status, validItems, staffNote, distributionArea);
         setIsModalOpen(false);
         setProcessing(null);
     };
 
-    const updateRequestStatus = async (requestId: string, status: "APPROVED" | "REJECTED", items: DispenseItem[], note: string) => {
+    const updateRequestStatus = async (requestId: string, status: "APPROVED" | "REJECTED", items: DispenseItem[], note: string, area: string) => {
         try {
             const res = await fetch("/api/requests", {
                 method: "PUT",
@@ -125,6 +132,7 @@ export default function StaffRequestsPage() {
                     status,
                     items,
                     staffNote: note,
+                    distributionArea: area
                 }),
             });
 
@@ -268,13 +276,19 @@ export default function StaffRequestsPage() {
 
                                     <div className="flex flex-col gap-2 min-w-[150px]">
                                         {req.status === "PENDING" && (
-                                            <Button
-                                                className="bg-sky-600 hover:bg-sky-700 text-white w-full"
-                                                onClick={() => openDispenseModal(req)}
-                                                disabled={!!processing}
-                                            >
-                                                Xử lý
-                                            </Button>
+                                            (req.email === session?.user?.email && !isAdmin) ? (
+                                                <div className="text-xs text-red-500 text-center border border-red-200 bg-red-50 p-2 rounded">
+                                                    Không thể tự duyệt
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    className="bg-sky-600 hover:bg-sky-700 text-white w-full"
+                                                    onClick={() => openDispenseModal(req)}
+                                                    disabled={!!processing}
+                                                >
+                                                    Xử lý
+                                                </Button>
+                                            )
                                         )}
 
                                         {isAdmin && req.status !== "PENDING" && req.status !== "EXPIRED" && (
@@ -376,6 +390,29 @@ export default function StaffRequestsPage() {
                                     <Button variant="outline" onClick={addItemRow} className="w-full border-dashed bg-white">
                                         + Thêm thuốc
                                     </Button>
+                                </div>
+                            </div>
+
+                            {/* Distribution Area */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Khu vực xuất thuốc <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="area" value="TAN_NHUT"
+                                            checked={distributionArea === "TAN_NHUT"}
+                                            onChange={() => setDistributionArea("TAN_NHUT")}
+                                            className="w-4 h-4 text-sky-600" />
+                                        <span className="text-sm">Trạm Tân Nhựt</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="area" value="HOA_HUNG"
+                                            checked={distributionArea === "HOA_HUNG"}
+                                            onChange={() => setDistributionArea("HOA_HUNG")}
+                                            className="w-4 h-4 text-sky-600" />
+                                        <span className="text-sm">Trạm Hòa Hưng</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>

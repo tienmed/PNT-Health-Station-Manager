@@ -49,6 +49,9 @@ export const authOptions: NextAuthOptions = {
         // signIn: "/auth/signin", // Custom sign-in page if we want, or default
         error: "/auth/error", // Error page
     },
+    session: {
+        maxAge: 90 * 24 * 60 * 60, // 3 months
+    },
     secret: process.env.NEXTAUTH_SECRET,
 };
 

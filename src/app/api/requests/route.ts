@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { appendRow, readSheet, updateRow } from "@/lib/sheets";
+import { appendRow, readSheet, updateRow, logActivity } from "@/lib/sheets";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -174,12 +174,22 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        const { requestId, status, items, staffNote, subjectGroup } = body;
+        const { requestId, status, items, staffNote, subjectGroup, distributionArea } = body;
         // items: { medicationId, quantity }[]
         // subjectGroup is optionally editable by Admin? Not strict req, but good to have if requested.
 
         if (!requestId || !status) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        }
+
+        if (status === "APPROVED" && (!items || items.length === 0)) {
+            // If approved but no items, that's debatable. But if items exist, we check area.
+        }
+
+        if (status === "APPROVED" && items && items.length > 0) {
+            if (!distributionArea || (distributionArea !== "TAN_NHUT" && distributionArea !== "HOA_HUNG")) {
+                return NextResponse.json({ error: "Vui lòng chọn khu vực xuất thuốc." }, { status: 400 });
+            }
         }
 
         // 1. Find Request Row
@@ -199,6 +209,12 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: "Staff cannot edit processed requests." }, { status: 403 });
         }
 
+        // Check for Self-Approval (Staff only)
+        const creatorEmail = requestRows[reqRowIndex][1];
+        if (userRole === "STAFF" && creatorEmail === session.user.email) {
+            return NextResponse.json({ error: "Không thể tự duyệt yêu cầu của chính mình." }, { status: 403 });
+        }
+
         // 2. Update Request Data
         // We update Status (E), StaffNote (H), ProcessedAt (I)
         // Row is reqRowIndex + 1
@@ -212,9 +228,14 @@ export async function PUT(request: Request) {
 
         // Let's just update the specific columns to avoid overwriting user notes if they changed simultaneously (unlikely but safe)
         // Adjusting logic:
+        // Adjusting logic:
         await updateRow(`Requests!E${reqRowIndex + 1}`, [status]);
         await updateRow(`Requests!H${reqRowIndex + 1}`, [staffNote || ""]);
         await updateRow(`Requests!I${reqRowIndex + 1}`, [processedAt]);
+        // Update Distribution Area (Col J - index 9 - letter J)
+        if (distributionArea) {
+            await updateRow(`Requests!J${reqRowIndex + 1}`, [distributionArea]);
+        }
 
 
         // 3. If Approved and items provided, Deduct Stock & Record Items
@@ -233,7 +254,16 @@ export async function PUT(request: Request) {
             // For safety in this prompt, we'll assume the 'items' passed are the ONES TO BE ADDED.
             // (or we rely on the fact that existing items are in 'RequestItems' and we only append new ones).
 
-            const medDataRows = await readSheet("Medications!A:E");
+            // (or we rely on the fact that existing items are in 'RequestItems' and we only append new ones).
+
+            const medDataRows = await readSheet("Medications!A:F"); // Update range to include both stock cols
+
+            let updateColLetter = "D";
+            let stockIndexInRow = 3; // Default Tân Nhựt
+            if (distributionArea === "HOA_HUNG") {
+                updateColLetter = "E";
+                stockIndexInRow = 4;
+            }
 
             for (const item of items) {
                 const { medicationId, quantity } = item;
@@ -249,14 +279,21 @@ export async function PUT(request: Request) {
                 // Update Stock
                 const medRowIndex = medDataRows.findIndex((row) => row[0] === medicationId);
                 if (medRowIndex !== -1) {
-                    const currentStock = parseInt(medDataRows[medRowIndex][3] || "0");
+                    const currentStock = parseInt(medDataRows[medRowIndex][stockIndexInRow] || "0");
                     const newStock = Math.max(0, currentStock - parseInt(quantity));
 
                     // Update the specific cell for stock
-                    await updateRow(`Medications!D${medRowIndex + 1}`, [newStock.toString()]);
-                    medDataRows[medRowIndex][3] = newStock.toString();
+                    await updateRow(`Medications!${updateColLetter}${medRowIndex + 1}`, [newStock.toString()]);
+                    medDataRows[medRowIndex][stockIndexInRow] = newStock.toString();
                 }
             }
+
+            // Log Activity
+            await logActivity(
+                session.user.email || "unknown",
+                "APPROVE_REQUEST",
+                `Duyệt yêu cầu ${requestId} - Khu vực: ${distributionArea} - Items: ${items.length}`
+            );
         }
 
         return NextResponse.json({ success: true });

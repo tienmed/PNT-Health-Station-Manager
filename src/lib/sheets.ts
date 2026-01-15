@@ -141,3 +141,14 @@ export async function getUserByEmail(email: string) {
         return null;
     }
 }
+
+export async function logActivity(email: string, action: string, details: string) {
+    try {
+        const timestamp = new Date().toISOString();
+        // Logs Sheet: Timestamp, Email, Action, Details
+        await appendRow("Logs!A:D", [timestamp, email, action, details]);
+    } catch (error) {
+        console.error("Failed to log activity:", error);
+        // We don't throw here to avoid failing the main operation just because logging failed
+    }
+}
