@@ -18,6 +18,7 @@ export default function RequestPage() {
     const [medications, setMedications] = useState<Medication[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [note, setNote] = useState("");
+    const [subjectGroup, setSubjectGroup] = useState("STUDENT"); // Default
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,6 +30,7 @@ export default function RequestPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     note,
+                    subjectGroup,
                 }),
             });
 
@@ -61,9 +63,40 @@ export default function RequestPage() {
 
                 <Card>
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Subject Group Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Đối tượng <span className="text-red-500">*</span>
+                            </label>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 relative">
+                                    <input
+                                        type="radio"
+                                        name="subjectGroup"
+                                        value="STUDENT"
+                                        checked={subjectGroup === "STUDENT"}
+                                        onChange={(e) => setSubjectGroup(e.target.value)}
+                                        className="w-4 h-4 text-sky-600 focus:ring-sky-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">Sinh viên / Học viên</span>
+                                </label>
+                                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 relative">
+                                    <input
+                                        type="radio"
+                                        name="subjectGroup"
+                                        value="EMPLOYEE"
+                                        checked={subjectGroup === "EMPLOYEE"}
+                                        onChange={(e) => setSubjectGroup(e.target.value)}
+                                        className="w-4 h-4 text-sky-600 focus:ring-sky-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">Cán bộ / Nhân viên</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Mô tả triệu chứng / Lý do
+                                Mô tả triệu chứng / Lý do <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 value={note}

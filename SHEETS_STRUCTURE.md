@@ -26,11 +26,11 @@ List of available medications and stock.
 
 ## 3. Requests
 Tracks medication requests from employees.
-- **Columns**: `RequestID`, `UserEmail`, `Date`, `Type` (Request/Dispense), `Status` (Pending/Approved/Rejected), `Note`
+- **Columns**: `RequestID`, `UserEmail`, `Date` (ISO format), `Type`, `Status`, `Note` (User Reason), `SubjectGroup` (Student/Employee), `StaffNote` (Staff Reason), `ProcessedAt` (ISO Timestamp)
 - **Example**:
-  | RequestID | UserEmail | Date | Type | Status | Note |
-  |---|---|---|---|---|---|
-  | REQ-101 | emp@pnt.edu.vn | 2026-01-13 | REQUEST | PENDING | Headache |
+  | RequestID | UserEmail | Date | Type | Status | Note | SubjectGroup | StaffNote | ProcessedAt |
+  |---|---|---|---|---|---|---|---|---|
+  | REQ-101 | emp@pnt.edu.vn | 2026-01-15T07:30:00Z | REQUEST | PENDING | Headache | EMPLOYEE | | |
 
 ## 4. RequestItems
 Details of items in each request.
