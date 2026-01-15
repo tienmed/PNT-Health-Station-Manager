@@ -36,12 +36,28 @@ export async function getSheetsClient() {
     // Some envs might give \\n, others \n
     privateKey = privateKey.replace(/\\n/g, "\n");
 
-    // 4. Debugging: Log key structure (safe, redacted)
+    // 4. Force repair of single-line keys (common copy-paste error)
+    // If the key has no newlines but looks like a PEM, we insert them.
+    if (!privateKey.includes("\n")) {
+        console.log("[DEBUG] Key is single-line, attempting to auto-format.");
+        const header = "-----BEGIN PRIVATE KEY-----";
+        const footer = "-----END PRIVATE KEY-----";
+
+        if (privateKey.includes(header) && privateKey.includes(footer)) {
+            // Remove headers to get body
+            let body = privateKey.replace(header, "").replace(footer, "").trim();
+            // Re-construct with strict newlines
+            privateKey = `${header}\n${body}\n${footer}`;
+            console.log("[DEBUG] Key auto-formatted with newlines.");
+        }
+    }
+
+    // 5. Debugging: Log key structure (safe, redacted)
     const lines = privateKey.split("\n");
     console.log(`[DEBUG] Processed Key: Lines=${lines.length}, Header=${lines[0].substring(0, 25)}...`);
 
-    if (lines.length < 5) {
-        console.warn("[WARNING] Private key appears to be single-lined or malformed. OpenSSL requires strict newline formatting.");
+    if (lines.length < 3) {
+        console.warn("[WARNING] Private key still appears to be malformed (too few lines).");
     }
 
     const auth = new google.auth.GoogleAuth({
