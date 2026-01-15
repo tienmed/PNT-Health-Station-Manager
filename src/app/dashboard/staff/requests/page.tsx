@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react";
 interface Request {
     requestId: string;
     email: string;
+    requesterName: string;
     items?: { medicationName: string; quantity: number }[]; // Display history
     date: string;
     status: string;
@@ -271,13 +272,13 @@ export default function StaffRequestsPage() {
                                                 </span>
                                             )}
                                         </div>
-
                                         <div>
-                                            <p className="font-semibold text-slate-900">
-                                                {req.email}
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                Tạo lúc: {formatTime(req.date)}
+                                            <h3 className="font-semibold text-gray-900">
+                                                {req.requesterName || req.email.split('@')[0]}
+                                            </h3>
+                                            <p className="text-sm text-gray-500">{req.email}</p>
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                {new Date(req.date).toLocaleString('vi-VN')}
                                             </p>
                                         </div>
 

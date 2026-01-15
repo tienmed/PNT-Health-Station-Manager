@@ -70,10 +70,11 @@ export async function GET() {
     try {
         // 1. Fetch all necessary data
         // Read A:I to get all new columns
-        const [requestRows, itemRows, medRows] = await Promise.all([
+        const [requestRows, itemRows, medRows, userRows] = await Promise.all([
             readSheet("Requests!A2:I"),
             readSheet("RequestItems!A2:C"),
-            readSheet("Medications!A2:B") // ID, Name
+            readSheet("Medications!A2:B"), // ID, Name
+            readSheet("Users!A:B") // Email, Name
         ]);
 
         const isStaff = (session.user as any).role === "STAFF" || (session.user as any).role === "ADMIN";
@@ -92,21 +93,20 @@ export async function GET() {
             medMap.set(row[0], row[1]);
         });
 
+        const userMap = new Map<string, string>();
+        userRows.forEach(row => {
+            if (row[0]) userMap.set(row[0], row[1] || "");
+        });
+
         // 3. Process Requests & Check Expiration
-        const processedRequests = [];
+        const expirationUpdates: Promise<void>[] = [];
 
-        // We need to track updates to write back to sheets if any expired
-        const updates = [];
-
-        for (let i = 0; i < requestRows.length; i++) {
-            const row = requestRows[i];
+        const processedRequests = requestRows.map((row, index) => {
             const requestId = row[0];
-            // Columns: 0:ID, 1:Email, 2:Date, 3:Type, 4:Status, 5:Note, 6:Group, 7:StaffNote, 8:ProcessedAt
-            let status = row[4];
-            let note = row[5];
             const dateStr = row[2];
+            let status = row[4];
 
-            // Check Expiration (24h) for PENDING requests
+            // Expiration Logic (24h) for PENDING requests
             if (status === "PENDING" && dateStr) {
                 const createdDate = new Date(dateStr);
                 const diffMs = now.getTime() - createdDate.getTime();
@@ -114,15 +114,8 @@ export async function GET() {
 
                 if (diffHours > 24) {
                     status = "EXPIRED";
-                    // Only update if it wasn't already expired (though we checked status===PENDING)
-                    // We need to update the Sheet for this row.
-                    // Row index in Sheet is i + 2 (header + 0-index)
-                    const rowIndex = i + 2;
-                    // Update Status (Col E -> 4) 
-                    // We won't batch these for simplicity now, but could be optimized.
-                    // We'll update the 'note' or status in the list we return, 
-                    // AND fire an async update to sheets.
-                    updateRow(`Requests!E${rowIndex}`, ["EXPIRED"]);
+                    // Update Sheet Async (Row index = index + 2)
+                    expirationUpdates.push(updateRow(`Requests!E${index + 2}`, ["EXPIRED"]));
                 }
             }
 
@@ -133,18 +126,26 @@ export async function GET() {
                 medicationName: medMap.get(it.medId) || "Unknown"
             }));
 
-            processedRequests.push({
-                requestId,
-                email: row[1],
+            const email = row[1];
+            return {
+                requestId: row[0],
+                email: email,
+                requesterName: userMap.get(email) || "", // Add Name
                 date: row[2],
                 type: row[3],
                 status: status,
-                note: note,
+                note: row[5],
                 subjectGroup: row[6] || "",
                 staffNote: row[7] || "",
                 processedAt: row[8] || "",
+                distributionArea: row[9] || "",
                 items: enrichedItems,
-            });
+            };
+        });
+
+        // Await all expiration updates
+        if (expirationUpdates.length > 0) {
+            await Promise.all(expirationUpdates);
         }
 
         let filteredRequests;
