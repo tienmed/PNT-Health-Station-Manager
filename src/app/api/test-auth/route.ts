@@ -20,20 +20,29 @@ export async function GET() {
             sheetId: sheetId ? `${sheetId.substring(0, 5)}...` : "MISSING",
         };
 
-        // Try to actually connect
+        // Try to actually connect and READ data
+        // Just getting client isn't enough, we must sign a JWT request
+        let connectionResult = "NOT_ATTEMPTED";
         try {
-            await getSheetsClient();
+            const client = await getSheetsClient();
+            // Try to fetch spreadsheet metadata (lightweight)
+            await client.spreadsheets.get({ spreadsheetId: sheetId });
+            connectionResult = "SUCCESS";
+
             return NextResponse.json({
                 status: "SUCCESS",
-                message: "Authentication successful!",
-                diagnostics
+                message: "Authentication & Connection successful! (Spreadsheet accessed)",
+                diagnostics,
+                connectionResult
             });
         } catch (authError: any) {
+            console.error("Auth Test Failed:", authError);
             return NextResponse.json({
                 status: "AUTH_FAILED",
                 error: authError.message,
                 stack: authError.stack,
-                diagnostics
+                diagnostics,
+                connectionResult: "FAILED"
             }, { status: 500 });
         }
 
