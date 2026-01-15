@@ -24,6 +24,9 @@ interface Medication {
     name: string;
     unit: string;
     stock: number;
+    stockTanNhut: number;
+    stockHoaHung: number;
+    minThreshold: number;
 }
 
 interface DispenseItem {
@@ -109,6 +112,38 @@ export default function StaffRequestsPage() {
             alert("Vui lòng chọn Khu vực xuất thuốc.");
             return;
         }
+
+        // --- NEW STOCK VALIDATION LOGIC ---
+        if (status === "APPROVED" && distributionArea) {
+            for (const item of validItems) {
+                const med = medications.find(m => m.id === item.medicationId);
+                if (!med) continue;
+
+                const currentStock = distributionArea === "TAN_NHUT" ? med.stockTanNhut : med.stockHoaHung;
+                const minThreshold = med.minThreshold || 0;
+
+                // 1. Check if requesting more than available
+                if (item.quantity > currentStock) {
+                    alert(`Không đủ thuốc "${med.name}" tại kho ${distributionArea === "TAN_NHUT" ? "Tân Nhựt" : "Hòa Hưng"}.\nHiện có: ${currentStock}, Yêu cầu: ${item.quantity}`);
+                    return;
+                }
+
+                // 2. Check if stock falls below threshold (before or after? Prompt says "số tồn < số lượng cảnh báo sẽ không cho cấp")
+                // Interpreting "số tồn" as current stock available. 
+                // If Current Stock < Min Threshold, cannot dispense (preserve emergency stock?)
+                // OR if (Current - Qty) < Min? 
+                // Prompt: "số tồn < số lượng cảnh báo sẽ không cho cấp" -> "If stock < warning level, do not allow dispensing".
+                // Let's enforce: If CurrentStock < MinThreshold, BLOCK.
+                if (currentStock < minThreshold) {
+                    alert(`Thuốc "${med.name}" tại kho ${distributionArea === "TAN_NHUT" ? "Tân Nhựt" : "Hòa Hưng"} đang dưới mức cảnh báo (${currentStock} < ${minThreshold}).\nKhông thể cấp phát.`);
+                    return;
+                }
+
+                // Also could block if resulting stock < min? 
+                // Strict reading: "If existing stock < warning, don't allow".
+            }
+        }
+        // ----------------------------------
 
         const confirmMsg = status === "APPROVED"
             ? "Xác nhận DUYỆT và CẤP THUỐC cho yêu cầu này?"
@@ -356,11 +391,24 @@ export default function StaffRequestsPage() {
                                                     title="Chọn tên thuốc"
                                                 >
                                                     <option value="">-- Chọn thuốc --</option>
-                                                    {medications.map(med => (
-                                                        <option key={med.id} value={med.id}>
-                                                            {med.name} (Kho: {med.stock})
-                                                        </option>
-                                                    ))}
+                                                    {medications.map(med => {
+                                                        // Calc display stock based on selection
+                                                        let displayStock = med.stock; // Default total
+                                                        let stockLabel = "Tổng";
+                                                        if (distributionArea === "TAN_NHUT") {
+                                                            displayStock = med.stockTanNhut;
+                                                            stockLabel = "TN";
+                                                        } else if (distributionArea === "HOA_HUNG") {
+                                                            displayStock = med.stockHoaHung;
+                                                            stockLabel = "HH";
+                                                        }
+
+                                                        return (
+                                                            <option key={med.id} value={med.id}>
+                                                                {med.name} ({stockLabel}: {displayStock})
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             </div>
                                             <div className="w-24">

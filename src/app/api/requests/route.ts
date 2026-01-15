@@ -153,8 +153,8 @@ export async function GET() {
             // Staff/Admin: Filter out EXPIRED requests
             filteredRequests = processedRequests.filter(req => req.status !== "EXPIRED");
         } else {
-            // Employee: See ALL
-            filteredRequests = processedRequests;
+            // Employee: See ONLY their own requests
+            filteredRequests = processedRequests.filter(req => req.email === session.user.email);
         }
 
         return NextResponse.json(filteredRequests.reverse());
