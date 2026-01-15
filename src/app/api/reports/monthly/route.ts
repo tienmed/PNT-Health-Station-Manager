@@ -1,114 +1,147 @@
 import { NextResponse } from "next/server";
 import { readSheet } from "@/lib/sheets";
+import * as XLSX from "xlsx";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export async function GET(request: Request) {
     const session = await getServerSession(authOptions);
+    const userRole = (session?.user as any)?.role;
 
-    if (!session || !session.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Role check: Only Staff or Admin can view reports
-    const userRole = (session.user as any).role;
-    if (userRole !== "STAFF" && userRole !== "ADMIN") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const month = searchParams.get("month"); // Format: YYYY-MM
-
-    if (!month) {
-        return NextResponse.json({ error: "Missing month parameter" }, { status: 400 });
+    if (!session || (userRole !== "STAFF" && userRole !== "ADMIN")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     try {
-        // 1. Fetch all necessary data
+        const { searchParams } = new URL(request.url);
+        const month = parseInt(searchParams.get("month") || "");
+        const year = parseInt(searchParams.get("year") || "");
+        const type = searchParams.get("type") || "MEDICATIONS"; // MEDICATIONS | USERS
+
+        if (!month || !year) {
+            return NextResponse.json({ error: "Month and Year are required" }, { status: 400 });
+        }
+
+        // 1. Fetch Data
         const [requestRows, itemRows, medRows] = await Promise.all([
-            readSheet("Requests!A2:F"),     // RequestID, UserEmail, Date, Type, Status, Note
-            readSheet("RequestItems!A2:C"), // RequestID, MedicationID, Quantity
-            readSheet("Medications!A2:B")   // ID, Name
+            readSheet("Requests!A2:I"),
+            readSheet("RequestItems!A2:C"),
+            readSheet("Medications!A2:C") // ID, Name, Unit
         ]);
 
-        // 2. Index Helpers
-        // RequestItems: Map RequestID -> Array of Items { medId, qty }
-        const itemsByRequest = new Map<string, { medId: string; qty: number }[]>();
+        // 2. Maps
+        const medMap = new Map(); // ID -> { name, unit }
+        medRows.forEach(row => {
+            medMap.set(row[0], { name: row[1], unit: row[2] });
+        });
+
+        const itemMap = new Map(); // RequestID -> [ { medId, qty } ]
         itemRows.forEach(row => {
             const reqId = row[0];
-            const data = { medId: row[1], qty: parseInt(row[2] || "0") };
-            if (!itemsByRequest.has(reqId)) {
-                itemsByRequest.set(reqId, []);
-            }
-            itemsByRequest.get(reqId)?.push(data);
+            if (!itemMap.has(reqId)) itemMap.set(reqId, []);
+            itemMap.get(reqId).push({ medId: row[1], qty: parseInt(row[2]) });
         });
 
-        // Medications: Map MedID -> Name
-        const medMap = new Map<string, string>();
-        medRows.forEach(row => {
-            medMap.set(row[0], row[1]);
+        // 3. Filter Requests by Date & Status
+        // We look for APPROVED requests within the month based on ProcessedAt (Col I, index 8)
+        // If ProcessedAt is missing, fallback to Date (Col C, index 2) although less accurate for dispensing time.
+        const filteredRequests = requestRows.filter(row => {
+            const status = row[4];
+            if (status !== "APPROVED") return false;
+
+            const dateStr = row[8] || row[2]; // ProcessedAt or Date
+            if (!dateStr) return false;
+
+            const date = new Date(dateStr);
+            return date.getMonth() + 1 === month && date.getFullYear() === year;
         });
 
-        // 3. Filter and Aggregate
-        // We want requests where:
-        // - Date starts with 'month' (YYYY-MM)
-        // - Status is 'APPROVED'
-        
-        type ReportEntry = {
-            date: string;
-            medicationName: string;
-            quantity: number;
-            note: string;
-        };
+        let reportData = [];
+        let sheetName = "Report";
 
-        type EmployeeReport = {
-            email: string;
-            totalItems: number;
-            details: ReportEntry[];
-        };
+        if (type === "MEDICATIONS") {
+            // Group by Medication
+            sheetName = `Thuốc_T${month}_${year}`;
+            const medStats = new Map(); // MedID -> TotalQty
 
-        // Map Email -> EmployeeReport
-        const reportMap = new Map<string, EmployeeReport>();
-
-        requestRows.forEach(row => {
-            const [requestId, email, date, type, status, note] = row;
-
-            if (status !== "APPROVED") return;
-            if (!date.startsWith(month)) return;
-
-            const items = itemsByRequest.get(requestId) || [];
-            
-            if (!reportMap.has(email)) {
-                reportMap.set(email, {
-                    email,
-                    totalItems: 0,
-                    details: []
-                });
-            }
-
-            const employeeReport = reportMap.get(email)!;
-
-            items.forEach(item => {
-                employeeReport.totalItems += item.qty;
-                employeeReport.details.push({
-                    date,
-                    medicationName: medMap.get(item.medId) || "Unknown",
-                    quantity: item.qty,
-                    note: note || ""
+            filteredRequests.forEach(req => {
+                const items = itemMap.get(req[0]) || [];
+                items.forEach((it: any) => {
+                    const current = medStats.get(it.medId) || 0;
+                    medStats.set(it.medId, current + it.qty);
                 });
             });
+
+            reportData = Array.from(medStats.entries()).map(([medId, qty]) => {
+                const info = medMap.get(medId) || { name: "Unknown", unit: "?" };
+                return {
+                    "Mã Thuốc": medId,
+                    "Tên Thuốc": info.name,
+                    "Đơn vị": info.unit,
+                    "Tổng Đã Cấp": qty
+                };
+            });
+
+            // Add header info
+            if (reportData.length === 0) {
+                reportData.push({ "Thông báo": "Không có dữ liệu cấp phát trong tháng này" });
+            }
+
+        } else {
+            // Group by User (List of transactions)
+            sheetName = `NguoiNhan_T${month}_${year}`;
+
+            filteredRequests.forEach(req => {
+                const reqId = req[0];
+                const email = req[1];
+                const processedAt = req[8] ? new Date(req[8]).toLocaleString("vi-VN") : "";
+                const staffNote = req[7];
+                const items = itemMap.get(reqId) || [];
+
+                // Flatten items: One row per request? Or one row per item?
+                // Plan said: Email | Name | Date | Medication x Qty | Staff | Note
+                // Let's create a formatted string for Meds to keep 1 row per request, cleaner.
+                const medsString = items.map((it: any) => {
+                    const name = medMap.get(it.medId)?.name || it.medId;
+                    return `${name} (${it.qty})`;
+                }).join(", ");
+
+                reportData.push({
+                    "Thời gian cấp": processedAt,
+                    "Người nhận (Email)": email,
+                    "Đối tượng": req[6] === "STUDENT" ? "Sinh viên" : "Nhân viên",
+                    "Danh sách thuốc": medsString,
+                    "Ghi chú (Staff)": staffNote,
+                    "Mã phiếu": reqId
+                });
+            });
+            if (reportData.length === 0) {
+                reportData.push({ "Thông báo": "Không có dữ liệu cấp phát trong tháng này" });
+            }
+        }
+
+        // 4. Generate Excel
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(reportData);
+
+        // Auto-width (basic)
+        const wscols = Object.keys(reportData[0] || {}).map(k => ({ wch: 20 }));
+        worksheet['!cols'] = wscols;
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+        const buf = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+        return new Response(buf, {
+            status: 200,
+            headers: {
+                "Content-Disposition": `attachment; filename="BaoCao_${type}_T${month}_${year}.xlsx"`,
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
         });
 
-        // Convert Map to Array
-        const reportList = Array.from(reportMap.values());
-
-        // Sort by Email (optional)
-        reportList.sort((a, b) => a.email.localeCompare(b.email));
-
-        return NextResponse.json(reportList);
-
-    } catch (error) {
-        console.error("Error generating report:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } catch (error: any) {
+        console.error("Report generation error:", error);
+        return NextResponse.json({ error: error.toString() }, { status: 500 });
     }
 }
