@@ -13,18 +13,13 @@ export async function getSheetsClient() {
     // Clean up the private key
     let privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
-    // Remove wrapping quotes if they exist (common Vercel env var mistake)
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    // 1. Remove wrapping quotes (single or double) if they exist
+    if ((privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+        (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
         privateKey = privateKey.slice(1, -1);
     }
 
-    // Log key diagnostics (redacted) to help debugging
-    if (privateKey) {
-        console.log(`[DEBUG] Key length: ${privateKey.length}`);
-        console.log(`[DEBUG] Key starts with: ${privateKey.substring(0, 20)}...`);
-    }
-
-    // Check if the user pasted the full JSON file content
+    // 2. Handle JSON format (if user pasted the whole file content)
     if (privateKey.trim().startsWith("{")) {
         try {
             const jsonKey = JSON.parse(privateKey);
@@ -37,8 +32,17 @@ export async function getSheetsClient() {
         }
     }
 
-    // Ensure newlines are correctly interpreted
+    // 3. Replace all variations of escaped newlines
+    // Some envs might give \\n, others \n
     privateKey = privateKey.replace(/\\n/g, "\n");
+
+    // 4. Debugging: Log key structure (safe, redacted)
+    const lines = privateKey.split("\n");
+    console.log(`[DEBUG] Processed Key: Lines=${lines.length}, Header=${lines[0].substring(0, 25)}...`);
+
+    if (lines.length < 5) {
+        console.warn("[WARNING] Private key appears to be single-lined or malformed. OpenSSL requires strict newline formatting.");
+    }
 
     const auth = new google.auth.GoogleAuth({
         credentials: {
