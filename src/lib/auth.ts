@@ -27,8 +27,8 @@ export const authOptions: NextAuthOptions = {
                     const dbUser = await getUserByEmail(session.user.email);
 
                     // If user is in the sheet, use that role (ADMIN/STAFF)
-                    if (dbUser) {
-                        (session.user as any).role = dbUser.role;
+                    if (dbUser && dbUser.role) {
+                        (session.user as any).role = dbUser.role.toUpperCase();
                     }
                     // If not in sheet but valid domain, default to EMPLOYEE
                     else if (session.user.email.endsWith("@pnt.edu.vn")) {
