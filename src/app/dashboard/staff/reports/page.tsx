@@ -60,6 +60,7 @@ export default function ReportsPage() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 mb-1">Tháng</label>
                                 <select
+                                    aria-label="Chọn tháng"
                                     className="w-full border rounded p-2"
                                     value={month}
                                     onChange={(e) => setMonth(parseInt(e.target.value))}
@@ -72,6 +73,7 @@ export default function ReportsPage() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 mb-1">Năm</label>
                                 <select
+                                    aria-label="Chọn năm"
                                     className="w-full border rounded p-2"
                                     value={year}
                                     onChange={(e) => setYear(parseInt(e.target.value))}

@@ -56,7 +56,7 @@ export async function GET(request: Request) {
             return date.getMonth() + 1 === month && date.getFullYear() === year;
         });
 
-        let reportData = [];
+        let reportData: any[] = [];
         let sheetName = "Report";
 
         if (type === "MEDICATIONS") {
