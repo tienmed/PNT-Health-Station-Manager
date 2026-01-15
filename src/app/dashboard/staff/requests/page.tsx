@@ -189,15 +189,29 @@ export default function StaffRequestsPage() {
             <Navbar />
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900">Quản lý Yêu cầu</h1>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Quản lý Yêu cầu</h1>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Xin chào, <span className="font-semibold">{session?.user?.name}</span>
+                            <span className="mx-2">|</span>
+                            Role: <span className={`font-mono font-bold ${(session?.user as any)?.role === "ADMIN" ? "text-red-600" : "text-blue-600"}`}>
+                                {(session?.user as any)?.role || "Unknown"}
+                            </span>
+                        </p>
+                    </div>
                     <Button variant="outline" onClick={() => router.back()}>Quay lại Bảng tin</Button>
                 </div>
 
                 {loading ? (
-                    <div>Đang tải...</div>
+                    <div>Đang tải dữ liệu...</div>
                 ) : requests.length === 0 ? (
                     <Card className="text-center py-12">
-                        <p className="text-slate-500">Không có yêu cầu nào.</p>
+                        <p className="text-slate-500">
+                            Không có yêu cầu nào.
+                        </p>
+                        <p className="text-xs text-slate-400 mt-2">
+                            (Vui lòng thử Refresh hoặc Đăng xuất/Đăng nhập lại nếu thấy sai sót)
+                        </p>
                     </Card>
                 ) : (
                     <div className="grid gap-4">
