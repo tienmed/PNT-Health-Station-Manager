@@ -25,6 +25,9 @@ export function Navbar() {
                                     Báo cáo
                                 </Link>
                             )}
+                            <Link href="/dashboard/profile" className="text-sm font-medium text-slate-600 hover:text-sky-600">
+                                Hồ sơ cá nhân
+                            </Link>
                         </div>
                     )}
 

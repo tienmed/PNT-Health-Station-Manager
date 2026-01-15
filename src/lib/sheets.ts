@@ -125,7 +125,7 @@ export async function updateRow(range: string, values: any[]) {
 
 export async function getUserByEmail(email: string) {
     try {
-        const rows = await readSheet("Users!A:C"); // Email, Name, Role
+        const rows = await readSheet("Users!A:E"); // Email, Name, Role, Phone, Unit
         const userRow = rows.find((row) => row[0] === email);
 
         if (userRow) {
@@ -133,12 +133,31 @@ export async function getUserByEmail(email: string) {
                 email: userRow[0],
                 name: userRow[1],
                 role: userRow[2],
+                phone: userRow[3] || "",
+                unit: userRow[4] || "",
             };
         }
         return null;
     } catch (error) {
         console.error("Error fetching user from sheets:", error);
         return null;
+    }
+}
+
+export async function updateUser(email: string, name: string, role: string, phone: string, unit: string) {
+    const rows = await readSheet("Users!A:A");
+    const rowIndex = rows.findIndex((row) => row[0] === email);
+
+    if (rowIndex !== -1) {
+        // Update existing row (A-E)
+        // Range: A(Row):E(Row)
+        // We need to overwrite the whole row or specific cells. Let's overwrite B-E.
+        // A=Email is key.
+        const rowNum = rowIndex + 1;
+        await updateRow(`Users!B${rowNum}:E${rowNum}`, [name, role, phone, unit]);
+    } else {
+        // Append new
+        await appendRow("Users!A:E", [email, name, role || "EMPLOYEE", phone, unit]);
     }
 }
 
