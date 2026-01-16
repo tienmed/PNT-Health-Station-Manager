@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/Button";
 
 export function ProfileGuard() {
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
     const [isLoading, setIsLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
 
@@ -18,34 +18,23 @@ export function ProfileGuard() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (session?.user) {
-            checkProfile();
+        if (session?.user && (!session.user.phone || !session.user.unit)) {
+            setFormData({
+                name: session.user.name || "",
+                phone: session.user.phone || "",
+                unit: session.user.unit || ""
+            });
+            setShowModal(true);
+            setIsLoading(false);
         } else {
             setIsLoading(false);
         }
     }, [session]);
 
-    async function checkProfile() {
-        try {
-            const res = await fetch("/api/profile", { cache: "no-store" });
-            if (res.ok) {
-                const user = await res.json();
-                // Check if missing fields
-                if (!user.name || !user.phone || !user.unit) {
-                    setFormData({
-                        name: user.name || (session?.user?.name || ""),
-                        phone: user.phone || "",
-                        unit: user.unit || ""
-                    });
-                    setShowModal(true);
-                }
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsLoading(false);
-        }
-    }
+
+
+
+    // ...
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -59,6 +48,8 @@ export function ProfileGuard() {
             });
 
             if (res.ok) {
+                // FORCE Update Session
+                await update({ ...formData });
                 setShowModal(false);
                 alert("Cập nhật thông tin thành công!");
                 // Optionally reload to reflect changes globally if needed

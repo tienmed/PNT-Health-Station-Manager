@@ -50,7 +50,7 @@ export default function StaffRequestsPage() {
     const [staffNote, setStaffNote] = useState("");
     const [distributionArea, setDistributionArea] = useState<"TAN_NHUT" | "HOA_HUNG" | "">("");
 
-    const isAdmin = (session?.user as any)?.role === "ADMIN";
+    const isAdmin = session?.user?.role === "ADMIN";
 
     useEffect(() => {
         Promise.all([fetchRequests(), fetchMedications()]).finally(() => setLoading(false));
@@ -238,8 +238,8 @@ export default function StaffRequestsPage() {
                         <p className="text-xs text-slate-500 mt-1">
                             Xin chào, <span className="font-semibold">{session?.user?.name}</span>
                             <span className="mx-2">|</span>
-                            Role: <span className={`font-mono font-bold ${(session?.user as any)?.role === "ADMIN" ? "text-red-600" : "text-blue-600"}`}>
-                                {(session?.user as any)?.role || "Unknown"}
+                            Role: <span className={`font-mono font-bold ${session?.user?.role === "ADMIN" ? "text-red-600" : "text-blue-600"}`}>
+                                {session?.user?.role || "Unknown"}
                             </span>
                         </p>
                     </div>

@@ -50,6 +50,15 @@ export async function POST(request: Request) {
             ]);
         }
 
+        // Notify Staff
+        const { sendNotificationToRole } = await import("@/lib/notifications");
+        await sendNotificationToRole(
+            "STAFF",
+            "Yêu cầu thuốc mới",
+            `${session.user.name} vừa gửi yêu cầu: ${note || "Thuốc"}`,
+            "/dashboard/staff/requests"
+        );
+
         return NextResponse.json({ success: true, requestId });
     } catch (error: any) {
         console.error("Error creating request:", error);
@@ -249,14 +258,6 @@ export async function PUT(request: Request) {
         // We will just APPEND new items if any. 
 
         if (status === "APPROVED" && Array.isArray(items) && items.length > 0) {
-
-            // To prevent double counting if Admin clicks "Save" again with same items, 
-            // the UI should probably send ONLY NEW items or we need a way to diff.
-            // For safety in this prompt, we'll assume the 'items' passed are the ONES TO BE ADDED.
-            // (or we rely on the fact that existing items are in 'RequestItems' and we only append new ones).
-
-            // (or we rely on the fact that existing items are in 'RequestItems' and we only append new ones).
-
             const medDataRows = await readSheet("Medications!A:F"); // Update range to include both stock cols
 
             let updateColLetter = "D";
@@ -296,6 +297,18 @@ export async function PUT(request: Request) {
                 `Duyệt yêu cầu ${requestId} - Khu vực: ${distributionArea} - Items: ${items.length}`
             );
         }
+
+        // Notify Requester
+        const { sendNotificationToUser } = await import("@/lib/notifications");
+        // We already have fields. We need user email.
+        const originalCreatorEmail = requestRows[reqRowIndex][1];
+
+        await sendNotificationToUser(
+            originalCreatorEmail,
+            `Yêu cầu ${requestId} đã cập nhật`,
+            `Trạng thái mới: ${status}. Staff Note: ${staffNote || "Không có"}`,
+            "/dashboard/history"
+        );
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -43,3 +43,12 @@ Details of items in each request.
 ## 5. Logs
 (Optional) Audit trail for stock changes.
 - **Columns**: `Date`, `ActorEmail`, `Action`, `Details`
+
+## 6. PushSubscriptions
+Stores Web Push API subscriptions for notification delivery.
+- **Columns**: `Email`, `SubscriptionJson` (JSON string), `UserAgent`, `LastUpdated` (ISO Timestamp)
+- **Example**:
+  | Email | SubscriptionJson | UserAgent | LastUpdated |
+  |---|---|---|---|
+  | user@example.com | {"endpoint":"...","keys":{...}} | Chrome Windows | 2026-01-16T... |
+

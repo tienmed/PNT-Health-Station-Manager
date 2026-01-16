@@ -19,28 +19,56 @@ export const authOptions: NextAuthOptions = {
             }
             return true;
         },
-        async session({ session, token }) {
-            if (session.user?.email) {
+        async jwt({ token, user, trigger, session }) {
+            // Initial sign in
+            if (user && user.email) {
                 try {
-                    // Dynamic Import to avoid build/circular dependency issues
                     const { getUserByEmail } = await import("./sheets");
-                    const dbUser = await getUserByEmail(session.user.email);
+                    const dbUser = await getUserByEmail(user.email);
 
-                    // If user is in the sheet, use that role (ADMIN/STAFF)
-                    if (dbUser && dbUser.role) {
-                        (session.user as any).role = dbUser.role.toUpperCase();
-                    }
-                    // If not in sheet but valid domain, default to EMPLOYEE
-                    else if (session.user.email.endsWith("@pnt.edu.vn")) {
-                        (session.user as any).role = "EMPLOYEE";
+                    if (dbUser) {
+                        token.role = dbUser.role?.toUpperCase();
+                        token.phone = dbUser.phone;
+                        token.unit = dbUser.unit;
+                    } else if (user.email.endsWith("@pnt.edu.vn")) {
+                        token.role = "EMPLOYEE";
                     }
                 } catch (e) {
-                    console.error("Role assignment error", e);
-                    // Fallback safe default
-                    if (session.user.email.endsWith("@pnt.edu.vn")) {
-                        (session.user as any).role = "EMPLOYEE";
+                    console.error("JWT assignment error", e);
+                    if (user.email.endsWith("@pnt.edu.vn")) {
+                        token.role = "EMPLOYEE";
                     }
                 }
+            }
+
+            // Trigger update (when client calls update())
+            if (trigger === "update" && session) {
+                // If the update contains specific fields, update token
+                // Or re-fetch from DB to be sure? 
+                // Let's trust the client provided data for instant feedback OR re-fetch.
+                // Re-fetching is safer.
+                if (token.email) {
+                    try {
+                        const { getUserByEmail } = await import("./sheets");
+                        const dbUser = await getUserByEmail(token.email);
+                        if (dbUser) {
+                            token.role = dbUser.role?.toUpperCase();
+                            token.phone = dbUser.phone;
+                            token.unit = dbUser.unit;
+                        }
+                    } catch (e) {
+                        console.error("JWT update error", e);
+                    }
+                }
+            }
+
+            return token;
+        },
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.role = token.role;
+                session.user.phone = token.phone;
+                session.user.unit = token.unit;
             }
             return session;
         },

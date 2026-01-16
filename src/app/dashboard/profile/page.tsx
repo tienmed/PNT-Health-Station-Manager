@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 export default function ProfilePage() {
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,8 +55,9 @@ export default function ProfilePage() {
             });
 
             if (res.ok) {
+                await update({ ...formData });
                 alert("Cập nhật thành công!");
-                router.refresh(); // Refresh to update session/UI if needed
+                // router.refresh(); // No longer needed as session update handles it
             } else {
                 const data = await res.json();
                 alert(data.error || "Có lỗi xảy ra.");

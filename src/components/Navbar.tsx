@@ -3,9 +3,19 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "./Button";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationManager } from "./NotificationManager";
 
 export function Navbar() {
     const { data: session } = useSession();
+    const { unsubscribeFromPush } = useNotifications();
+
+    const handleLogout = async () => {
+        // Unsubscribe from push to prevent this device receiving notifications for this user
+        await unsubscribeFromPush();
+        // Sign out and clear session/cookies
+        await signOut({ callbackUrl: "/", redirect: true });
+    };
 
     return (
         <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
@@ -20,7 +30,7 @@ export function Navbar() {
                             <Link href="/dashboard" className="text-sm font-medium text-slate-600 hover:text-sky-600">
                                 Bảng tin
                             </Link>
-                            {((session.user as any).role === "STAFF" || (session.user as any).role === "ADMIN") && (
+                            {(session.user.role === "STAFF" || session.user.role === "ADMIN") && (
                                 <Link href="/dashboard/staff/reports" className="text-sm font-medium text-slate-600 hover:text-sky-600">
                                     Báo cáo
                                 </Link>
@@ -37,7 +47,7 @@ export function Navbar() {
                                 <span className="text-sm text-slate-600 hidden sm:block">
                                     {session.user?.name}
                                 </span>
-                                <Button variant="outline" onClick={() => signOut()} className="text-sm">
+                                <Button variant="outline" onClick={handleLogout} className="text-sm">
                                     Đăng xuất
                                 </Button>
                             </>
@@ -46,6 +56,7 @@ export function Navbar() {
                                 Đăng nhập
                             </Button>
                         )}
+                        <NotificationManager />
                     </div>
                 </div>
             </div>

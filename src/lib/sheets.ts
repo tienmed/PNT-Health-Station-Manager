@@ -24,7 +24,7 @@ export async function getSheetsClient() {
         try {
             const jsonKey = JSON.parse(privateKey);
             if (jsonKey.private_key) {
-                console.log("[DEBUG] Detected JSON format, extracting private_key field.");
+                // console.log("[DEBUG] Detected JSON format, extracting private_key field.");
                 privateKey = jsonKey.private_key;
             }
         } catch (e) {
@@ -39,7 +39,7 @@ export async function getSheetsClient() {
     // 4. Force repair of single-line keys (common copy-paste error)
     // If the key has no newlines but looks like a PEM, we insert them.
     if (!privateKey.includes("\n")) {
-        console.log("[DEBUG] Key is single-line, attempting to auto-format.");
+        // console.log("[DEBUG] Key is single-line, attempting to auto-format.");
         const header = "-----BEGIN PRIVATE KEY-----";
         const footer = "-----END PRIVATE KEY-----";
 
@@ -48,13 +48,13 @@ export async function getSheetsClient() {
             let body = privateKey.replace(header, "").replace(footer, "").trim();
             // Re-construct with strict newlines
             privateKey = `${header}\n${body}\n${footer}`;
-            console.log("[DEBUG] Key auto-formatted with newlines.");
+            // console.log("[DEBUG] Key auto-formatted with newlines.");
         }
     }
 
     // 5. Debugging: Log key structure (safe, redacted)
     const lines = privateKey.split("\n");
-    console.log(`[DEBUG] Processed Key: Lines=${lines.length}, Header=${lines[0].substring(0, 25)}...`);
+    // console.log(`[DEBUG] Processed Key: Lines=${lines.length}, Header=${lines[0].substring(0, 25)}...`);
 
     if (lines.length < 3) {
         console.warn("[WARNING] Private key still appears to be malformed (too few lines).");
@@ -171,3 +171,42 @@ export async function logActivity(email: string, action: string, details: string
         // We don't throw here to avoid failing the main operation just because logging failed
     }
 }
+
+// --- Notifications ---
+
+export async function addSubscription(email: string, subscription: any, userAgent: string) {
+    const sheets = await getSheetsClient();
+    try {
+        // Check if exists to avoid duplicates (naive check)
+        const rows = await readSheet("PushSubscriptions!A:B");
+        const subJson = JSON.stringify(subscription);
+        const existing = rows.find(r => r[0] === email && r[1] === subJson);
+
+        if (!existing) {
+            await appendRow("PushSubscriptions!A:D", [
+                email,
+                subJson,
+                userAgent,
+                new Date().toISOString()
+            ]);
+        }
+    } catch (error) {
+        console.error("Error adding subscription:", error);
+        // Don't fail the UI for this
+    }
+}
+
+export async function getSubscriptions(emails: string[] = []) {
+    try {
+        const rows = await readSheet("PushSubscriptions!A:B");
+        // Filter by emails if provided
+        if (emails.length > 0) {
+            return rows.filter(r => emails.includes(r[0])).map(r => JSON.parse(r[1]));
+        }
+        return rows.map(r => JSON.parse(r[1]));
+    } catch (error) {
+        console.error("Error getting subscriptions:", error);
+        return [];
+    }
+}
+
