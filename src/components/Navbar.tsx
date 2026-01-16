@@ -31,9 +31,17 @@ export function Navbar() {
                                 Bảng tin
                             </Link>
                             {(session.user.role === "STAFF" || session.user.role === "ADMIN") && (
-                                <Link href="/dashboard/staff/reports" className="text-sm font-medium text-slate-600 hover:text-sky-600">
-                                    Báo cáo
-                                </Link>
+                                <>
+                                    <Link href="/dashboard/staff/requests" className="text-sm font-medium text-slate-600 hover:text-sky-600">
+                                        Q.lý Yêu cầu
+                                    </Link>
+                                    <Link href="/dashboard/staff/inventory" className="text-sm font-medium text-slate-600 hover:text-sky-600">
+                                        Kho thuốc
+                                    </Link>
+                                    <Link href="/dashboard/staff/reports" className="text-sm font-medium text-slate-600 hover:text-sky-600">
+                                        Báo cáo
+                                    </Link>
+                                </>
                             )}
                             <Link href="/dashboard/profile" className="text-sm font-medium text-slate-600 hover:text-sky-600">
                                 Hồ sơ cá nhân

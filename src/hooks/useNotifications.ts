@@ -74,9 +74,19 @@ export function useNotifications() {
             });
 
             alert("Đã bật thông báo thành công!");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Subscription failed:", error);
-            alert("Không thể bật thông báo. Vui lòng kiểm tra quyền truy cập.");
+
+            let msg = "Không thể bật thông báo.";
+            if (error.name === "NotAllowedError" || error.message.includes("Permission denied")) {
+                msg += "\nLý do: Bạn đã CHẶN quyền thông báo. Vui lòng bấm vào biểu tượng ổ khóa 🔒 trên thanh địa chỉ -> Reset permission.";
+            } else if (error.message.includes("VAPID")) {
+                msg += "\nLý do: Lỗi VAPID Key (Server config).";
+            } else {
+                msg += `\nLỗi: ${error.message || error}`;
+            }
+
+            alert(msg);
         }
     }
 
