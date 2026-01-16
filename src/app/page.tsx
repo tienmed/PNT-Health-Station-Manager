@@ -1,3 +1,4 @@
+// Copyright © 2026 TRINH TRUNG TIEN (bstien@pnt.edu.vn)
 "use client";
 
 import { useSession, signIn } from "next-auth/react";
