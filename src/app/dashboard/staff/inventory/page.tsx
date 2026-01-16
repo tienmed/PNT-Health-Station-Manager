@@ -33,7 +33,7 @@ export default function InventoryPage() {
 
     // New Med State
     const [showAdd, setShowAdd] = useState(false);
-    const [newMed, setNewMed] = useState({ name: "", unit: "pill", stockTanNhut: 0, stockHoaHung: 0, minThreshold: 10 });
+    const [newMed, setNewMed] = useState({ name: "", unit: "Viên", stockTanNhut: 0, stockHoaHung: 0, minThreshold: 10 });
 
     useEffect(() => {
         fetchMeds();
@@ -162,7 +162,7 @@ export default function InventoryPage() {
             if (res.ok) {
                 fetchMeds();
                 setShowAdd(false);
-                setNewMed({ name: "", unit: "pill", stockTanNhut: 0, stockHoaHung: 0, minThreshold: 10 });
+                setNewMed({ name: "", unit: "Viên", stockTanNhut: 0, stockHoaHung: 0, minThreshold: 10 });
             }
         } catch (e) {
             console.error(e);
@@ -196,10 +196,13 @@ export default function InventoryPage() {
                                 <select className="p-2 rounded border w-24"
                                     title="Chọn đơn vị"
                                     value={newMed.unit} onChange={e => setNewMed({ ...newMed, unit: e.target.value })}>
-                                    <option value="pill">Viên</option>
-                                    <option value="bottle">Chai</option>
-                                    <option value="box">Hộp</option>
-                                    <option value="tube">Tuýp</option>
+                                    <option value="Viên">Viên</option>
+                                    <option value="Chai">Chai</option>
+                                    <option value="Hộp">Hộp</option>
+                                    <option value="Tuýp">Tuýp</option>
+                                    <option value="Gói">Gói</option>
+                                    <option value="Cuộn">Cuộn</option>
+                                    <option value="Miếng">Miếng</option>
                                 </select>
                             </div>
                             <div>
